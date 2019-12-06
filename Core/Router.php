@@ -114,17 +114,18 @@ namespace Core;
       if($this->match($url)) {
         $controller = $this->params['controller'];
         $controller = $this->convertToStudlyCaps($controller);
-        $controller = "App\Controllers\\$controller";
+        // $controller = "App\Controllers\\$controller";
+        $controller = $this->getNamespace() . $controller;
 
         if(class_exists($controller)) {
-          $controller_object = new $controller();
+          $controller_object = new $controller($this->params);
           $action = $this->params['action'];
           $action = $this->convertToCamelCase($action);
 
-          if(is_callable([$controller_object, $action])) {
+          if(preg_match('/action$/i', $action) == 0) {
             $controller_object->$action();
           } else {
-            echo "Method $action (in controller $controller) not found";
+            throw new \Exception("Method $action in controller $controller cannot be called directly - remove the Action suffix to call this method");
           }
         } else {
           echo "Controller class $controller not found";
@@ -191,6 +192,19 @@ namespace Core;
         }
       }
       return $url;
+    }
+
+    /**
+     * get the namespace for the controller class. the namespace defined in the route parameters is added if present
+     * 
+     * @return string the request url
+     */
+    protected function getNamespace() {
+      $namespace = 'App\Controllers\\';
+      if(array_key_exists('namespace', $this->params)) {
+        $namespace .= $this->params['namespace'] . '\\';
+      }
+      return $namespace;
     }
   }
 ?>
